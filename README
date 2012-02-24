@@ -1,0 +1,25 @@
+adridu59 ramdisk - based on DoomKernel ramdisk
+----------------------------------------------
+
+* build commands for GZIP/BZIP2/LZMA/LZO/XZ
+* bootsound removed
+* updated : Superuser 3.0.7 & su 3.0.3.2
+* CPU bootup freqs matching acpuclock update
+
+Build commands
+----------------------------------------------
+
+// GZIP
+sh compile_gzip.sh
+
+// BZIP2
+sh compile_bzip2.sh
+
+// LZMA
+sh compile_lzma.sh
+
+// LZO
+sh compile_lzo.sh
+
+// XZ
+sh compile_xz.sh
