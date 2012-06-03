@@ -10,7 +10,7 @@ on init
 
 on post-fs
     mkdir /data/idd 0755 idd idd
-    mount yaffs2 mtd@appslog /data/idd nosuid nodev
+    
     chown idd idd /data/idd
     chmod 0755 /data/idd
     mkdir /data/tombstones 0755 system system
@@ -107,10 +107,6 @@ on early-init
     mkdir /mnt/sdcard 0000 system system
     # for backwards compatibility
     symlink /mnt/sdcard /sdcard
-
-on early-boot
-   # set RLIMIT_MEMLOCK to 32MB
-   setrlimit 8 33554432 33554432
 
 on post-fs-data
     # Clear dalvik cache
@@ -357,6 +353,20 @@ service media /system/bin/mediaserver
 on init
     write /sys/class/android_usb/android0/iSerial $ro.serialno
 
+on post-fs
+    # Remount system as rw for things to come...
+    mount yaffs2 mtd@system /system rw remount
+
+    # Mount appslog as rw on /system/vendor for checkpointing
+    mkdir /system/vendor 0755 root shell
+    mount yaffs2 mtd@appslog /system/vendor
+    chown root shell /system/vendor
+    chmod 0755 /system/vendor
+
+    # Re-mount as read-only
+    mount yaffs2 mtd@appslog /system/vendor ro remount
+    mount yaffs2 mtd@system /system ro remount
+
 service hdmid /system/bin/hdmid
     class main
     user  system
@@ -378,3 +388,9 @@ on boot
     chown system system /dev/uio0
     chown system system /sys/class/leds/button-backlight-rgb1/brightness
     chown system system /sys/class/leds/button-backlight-rgb2/brightness
+
+service dfdump /system/bin/dfdump
+    class main
+    user root
+    oneshot
+
