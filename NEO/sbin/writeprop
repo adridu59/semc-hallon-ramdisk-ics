@@ -1,0 +1,51 @@
+#!/system/bin/sh
+
+# by shardul_seth @xda-developers
+# it writes to file as opposed to setprop
+
+if [ x$1 == "x" ] || [ x$1 == "x-h" ] || [ x$1 == "x--help" ] || [ x$2 == "x" ]; then
+	echo -e "\nwriteprop - Writes property to file (cf. setprop)";
+	echo -e "Usage: writeprop [key value]\n";
+	exit
+fi;
+
+
+propinfile=
+systemf=0
+for f in /data/local.prop /system/default.prop /system/build.prop; do
+	grep -q $1 $f;
+	if [ $? -eq 0 ]; then
+		propinfile=$f;
+		break;
+	fi;
+	systemf=$(expr $systemf + 1);
+done;
+
+# if prop file in system partition
+if [ $systemf -ne 0 ]; then
+	busybox mount -o remount,rw /system
+fi
+
+if [ x$propinfile == "x" ]; then
+	echo "$1=$2" >>/data/local.prop;  
+	echo "Property updated in /data/local.prop";
+else
+	sed -e 's_\('$1'\=\).*_\1'$2'_g' <$propinfile >$propinfile.new
+	if [ $? -ne 0 ]; then 
+		echo "Could not write value in $propinfile (readonly?)";
+		exit; 
+	fi;
+	mv -f $propinfile $propinfile.bak;
+	mv -f $propinfile.new $propinfile;
+	echo "Property updated in $propinfile";
+fi;
+
+# reset rw to ro again
+if [ $systemf -ne 0 ]; then
+	busybox mount -o remount,ro /system;
+fi;
+
+unset systemf;
+unset propinfile;
+
+echo "Property will be in effect after next boot";
