@@ -10,7 +10,6 @@ on init
 
 on post-fs
     mkdir /data/idd 0755 idd idd
-    
     chown idd idd /data/idd
     chmod 0755 /data/idd
     mkdir /data/tombstones 0755 system system
@@ -20,6 +19,8 @@ on post-fs
 on early-boot
     #Run pre_hw_config.sh before entering charge only mode.
     exec /system/bin/sh /system/etc/pre_hw_config.sh
+    # Boot into recovery
+    exec /sbin/bootrec
     # Start the offline charging (This blocks booting further in some cases)
     exec /system/bin/chargemon
 
