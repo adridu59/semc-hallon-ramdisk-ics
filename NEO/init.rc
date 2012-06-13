@@ -264,9 +264,6 @@ on boot
 #shardul_seth: init.d scripts support 
     start sysinitsupport
 
-#shardul_seth: Wi-Fi Modules stock restore
-    start wifimodinstall
-
     class_start core
     class_start main
 
@@ -343,11 +340,6 @@ on property:persist.sys.usb.config=*
 ##
 #shardul_seth - initd support
 service sysinitsupport /sbin/sysinitsupport.sh
-    class main
-    disabled
-    oneshot
-
-service wifimodinstall /sbin/modinst.sh
     class main
     disabled
     oneshot
