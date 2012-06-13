@@ -261,7 +261,7 @@ on boot
 # Set this property so surfaceflinger is not started by system_init
     setprop system_init.startsurfaceflinger 0
 
-#shardul_seth: init.d scripts support 
+#DooMLoRD: init.d scripts support 
     start sysinitsupport
 
     class_start core
@@ -338,7 +338,7 @@ on property:persist.sys.usb.config=*
 
 ## Daemon processes to be run by init.
 ##
-#shardul_seth - initd support
+#DooMLoRD: init.d scripts support
 service sysinitsupport /sbin/sysinitsupport.sh
     class main
     disabled
