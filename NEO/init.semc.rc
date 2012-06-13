@@ -1,10 +1,16 @@
-#on early-init
-#    # start fota
-#    exec /sbin/fotainit
+on early-init
+    # start fota
+    exec /sbin/fotainit
+
+on init
+    # start master reset
+    exec /sbin/mr
+    # Check if flash was aborted
+    exec /sbin/checkabortedflash
 
 on post-fs
     mkdir /data/idd 0755 idd idd
-    mount yaffs2 mtd@appslog /data/idd nosuid nodev
+    
     chown idd idd /data/idd
     chmod 0755 /data/idd
     mkdir /data/tombstones 0755 system system
@@ -14,8 +20,6 @@ on post-fs
 on early-boot
     #Run pre_hw_config.sh before entering charge only mode.
     exec /system/bin/sh /system/etc/pre_hw_config.sh
-    # Boot into recovery
-    exec /sbin/bootrec
     # Start the offline charging (This blocks booting further in some cases)
     exec /system/bin/chargemon
 
@@ -32,6 +36,11 @@ service updatemiscta /system/bin/updatemiscta
     class main
     user root
     oneshot
+
+service iddd /system/bin/iddd
+    class main
+    user idd
+    group idd log
 
 # Set the startup flag to boot complete, run on property change
 service setssflagbc /system/bin/startupflag bootcomplete
@@ -89,7 +98,7 @@ on fs
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
     mount yaffs2 mtd@system /system
-    mount yaffs2 mtd@system /system rw remount
+    mount yaffs2 mtd@system /system ro remount
     mount yaffs2 mtd@userdata /data nosuid nodev
     mount yaffs2 mtd@cache /cache nosuid nodev
 
@@ -98,10 +107,6 @@ on early-init
     mkdir /mnt/sdcard 0000 system system
     # for backwards compatibility
     symlink /mnt/sdcard /sdcard
-
-on early-boot
-   # set RLIMIT_MEMLOCK to 32MB
-   setrlimit 8 33554432 33554432
 
 on post-fs-data
     # Clear dalvik cache
@@ -219,7 +224,7 @@ on boot
     
 
     
-	
+
     # Disable C_A_D
     exec system/bin/ctrlaltdel soft
 
@@ -244,7 +249,6 @@ on property:sys.boot_completed=1
     write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold 90
     write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/sampling_rate 20000
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 245760
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 1024000
     write /sys/devices/system/cpu/cpufreq/ondemand/io_is_busy 1
 
 service nvcustomizer /system/bin/nvcustomizer
@@ -293,7 +297,7 @@ service hostapd_bin /system/bin/logwrapper /system/bin/hostapd_bin -dd /data/mis
     disabled
     oneshot
 
-service initial_regdom /system/bin/iw reg set UK
+service initial_regdom /system/bin/iw reg set US
      disabled
      oneshot
 
@@ -349,24 +353,42 @@ service media /system/bin/mediaserver
 on init
     write /sys/class/android_usb/android0/iSerial $ro.serialno
 
+on post-fs
+    # Remount system as rw for things to come...
+    mount yaffs2 mtd@system /system rw remount
+
+    # Mount appslog as rw on /system/vendor for checkpointing
+    mkdir /system/vendor 0755 root shell
+    mount yaffs2 mtd@appslog /system/vendor
+    chown root shell /system/vendor
+    chmod 0755 /system/vendor
+
+    # Re-mount as read-only
+    mount yaffs2 mtd@appslog /system/vendor ro remount
+    mount yaffs2 mtd@system /system ro remount
+
+service hdmid /system/bin/hdmid
+    class main
+    user  system
+    group inet
+
 service touchd /system/bin/touchd
+    class main
     user root
 
 on early-boot
     # Start touch firmware loader
-    exec /system/bin/clearpad_fwloader
+    exec /system/bin/cy8ctma300_fwloader -dev /sys/devices/platform/spi_qsd.0/spi0.0 -no_condition
 
 on boot
-    chown media media /sys/class/leds/torch/brightness
-    chown media media /sys/class/leds/torch/max_current
+    chown system system /sys/kernel/hdmi_sii_kset/hdmi_sii_kobj/hdmi_sii_state_obj
+    chmod 0600 /sys/kernel/hdmi_sii_kset/hdmi_sii_kobj/hdmi_sii_state_obj
 
-    exec /system/bin/usbeng
+    chown system system /dev/i2c-0
+    chown system system /dev/uio0
+    chown system system /sys/class/leds/button-backlight-rgb1/brightness
+    chown system system /sys/class/leds/button-backlight-rgb2/brightness
 
-    # Generate flag file for datarequest monitoring.
-    rm /data/datarequest_flg
-    write /data/datarequest_flg 12
-    chmod 644 /data/datarequest_flg
-	
 service dfdump /system/bin/dfdump
     class main
     user root
